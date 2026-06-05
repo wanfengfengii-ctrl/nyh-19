@@ -19,6 +19,15 @@ import {
   IconAlertTriangle,
   IconCheck,
 } from '@tabler/icons-react';
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+} from 'recharts';
 import { useObjectiveStore } from '../store/objectiveStore';
 import type { MaintenanceRecord } from '../types';
 import { STATUS_LABELS, STATUS_COLORS } from '../types';
@@ -165,6 +174,50 @@ export function DetailDrawer() {
             </Accordion.Panel>
           </Accordion.Item>
         </Accordion>
+
+        <Divider label="评分趋势" labelPosition="center" />
+
+        {records.length > 0 ? (
+          <Card withBorder p="md" radius="sm">
+            <Box h={180}>
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart
+                  data={records
+                    .slice()
+                    .sort(
+                      (a, b) =>
+                        new Date(a.testDate).getTime() -
+                        new Date(b.testDate).getTime()
+                    )}
+                >
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                  <XAxis
+                    dataKey="testDate"
+                    tick={{ fontSize: 10 }}
+                    tickFormatter={(value) => value.slice(5)}
+                  />
+                  <YAxis domain={[0, 100]} tick={{ fontSize: 10 }} />
+                  <Tooltip
+                    formatter={(value) => [`${value} 分`, '清晰度']}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="clarityScore"
+                    stroke="#3b82f6"
+                    strokeWidth={2}
+                    dot={{ r: 4 }}
+                    activeDot={{ r: 6 }}
+                    name="清晰度评分"
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </Box>
+          </Card>
+        ) : (
+          <Text c="dimmed" ta="center" py="md" size="sm">
+            暂无评分数据
+          </Text>
+        )}
 
         <Divider label="保养历史" labelPosition="center" />
 

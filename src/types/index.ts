@@ -28,6 +28,7 @@ export interface FilterOptions {
   status?: ObjectiveStatus;
   brand?: string;
   magnification?: number;
+  coatingStatus?: string;
   search?: string;
 }
 

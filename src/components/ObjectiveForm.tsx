@@ -83,10 +83,15 @@ export function ObjectiveForm() {
   };
 
   const handleSubmit = (values: ObjectiveFormData) => {
+    const dataToSave = {
+      ...values,
+      magnification: Number(values.magnification),
+      numericalAperture: Number(values.numericalAperture),
+    };
     if (isEditing && editingObjective) {
-      updateObjective(editingObjective.id, values);
+      updateObjective(editingObjective.id, dataToSave);
     } else {
-      addObjective(values);
+      addObjective(dataToSave);
     }
     handleClose();
   };

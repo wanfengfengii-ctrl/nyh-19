@@ -111,6 +111,11 @@ export const useObjectiveStore = create<ObjectiveStore>()(
             obj.magnification !== filters.magnification
           )
             return false;
+          if (
+            filters.coatingStatus &&
+            obj.coatingStatus !== filters.coatingStatus
+          )
+            return false;
           if (filters.search) {
             const searchLower = filters.search.toLowerCase();
             const searchFields = [
@@ -122,6 +127,11 @@ export const useObjectiveStore = create<ObjectiveStore>()(
           }
           return true;
         });
+      },
+
+      getUniqueCoatingStatuses: () => {
+        const statuses = new Set(get().objectives.map((o) => o.coatingStatus));
+        return Array.from(statuses).sort();
       },
 
       getRecordsByObjectiveId: (id) => {
