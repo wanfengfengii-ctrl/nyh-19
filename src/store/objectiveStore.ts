@@ -13,6 +13,7 @@ import type {
   BatchImportResult,
 } from '../types';
 import { mockObjectives, mockRecords, mockImages, mockRepairs, mockLogs, mockReminders } from '../utils/mockData';
+import { validateBatchImportItem } from '../utils/validation';
 
 interface ObjectiveStore {
   objectives: Objective[];
@@ -148,6 +149,37 @@ export const useObjectiveStore = create<ObjectiveStore>()(
         set((state) => ({
           records: [...state.records, newRecord],
         }));
+
+        const obj = get().objectives.find((o) => o.id === record.objectiveId);
+        if (obj && record.damages?.length) {
+          const existingDamageTypes = new Set(obj.damages.map((d) => d.type));
+          const newDamages = [...obj.damages];
+          
+          record.damages.forEach((damage) => {
+            if (!existingDamageTypes.has(damage.type)) {
+              newDamages.push(damage);
+              existingDamageTypes.add(damage.type);
+            }
+          });
+
+          let newStatus = obj.status;
+          const damageTypes = new Set(newDamages.map((d) => d.type));
+          if (damageTypes.has('coating')) {
+            newStatus = 'coating_damaged';
+          } else if (damageTypes.has('scratch')) {
+            newStatus = 'scratched';
+          } else if (damageTypes.has('mold')) {
+            newStatus = 'moldy';
+          } else {
+            newStatus = 'normal';
+          }
+
+          get().updateObjective(record.objectiveId, {
+            damages: newDamages,
+            status: obj.status === 'scrapped' ? 'scrapped' : newStatus,
+          });
+        }
+
         get().addOperationLog({
           type: 'add_record',
           objectiveId: record.objectiveId,
@@ -321,20 +353,43 @@ export const useObjectiveStore = create<ObjectiveStore>()(
           failed: 0,
           errors: [],
         };
+
+        const seenSerialNumbers = new Set<string>();
+        const existingSerialNumbers = new Set(
+          get().objectives.map((o) => o.serialNumber)
+        );
+
         data.forEach((item, index) => {
-          if (!get().isSerialNumberUnique(item.serialNumber)) {
+          const validation = validateBatchImportItem(item, index);
+          if (!validation.valid) {
+            result.failed++;
+            result.errors.push(...validation.errors);
+            return;
+          }
+
+          if (seenSerialNumbers.has(item.serialNumber)) {
+            result.failed++;
+            result.errors.push(`第 ${index + 1} 行: 编号 ${item.serialNumber} 在导入数据中重复`);
+            return;
+          }
+
+          if (existingSerialNumbers.has(item.serialNumber)) {
             result.failed++;
             result.errors.push(`第 ${index + 1} 行: 编号 ${item.serialNumber} 已存在`);
             return;
           }
+
           try {
             get().addObjective(item);
+            seenSerialNumbers.add(item.serialNumber);
+            existingSerialNumbers.add(item.serialNumber);
             result.success++;
           } catch (e) {
             result.failed++;
             result.errors.push(`第 ${index + 1} 行: 导入失败`);
           }
         });
+
         get().addOperationLog({
           type: 'batch_import',
           description: `批量导入: 成功 ${result.success} 条，失败 ${result.failed} 条`,

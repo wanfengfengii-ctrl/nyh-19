@@ -142,16 +142,15 @@ export const validateMaintenanceForm = (
 
 export const validateBatchImportItem = (
   item: Partial<ObjectiveFormData>,
-  index: number,
-  isSerialNumberUnique: boolean
+  index: number
 ): { valid: boolean; errors: string[] } => {
   const errors: string[] = [];
 
-  const serialNumberError = validateSerialNumber(
-    item.serialNumber || '',
-    isSerialNumberUnique
-  );
-  if (serialNumberError) errors.push(`第 ${index + 1} 行 - 编号: ${serialNumberError}`);
+  if (!item.serialNumber || item.serialNumber.trim() === '') {
+    errors.push(`第 ${index + 1} 行 - 编号: 请输入物镜编号`);
+  } else if (item.serialNumber.length > 50) {
+    errors.push(`第 ${index + 1} 行 - 编号: 物镜编号长度不能超过 50 个字符`);
+  }
 
   const brandError = validateBrand(item.brand || '');
   if (brandError) errors.push(`第 ${index + 1} 行 - 品牌: ${brandError}`);
