@@ -16,7 +16,7 @@ import {
   DAMAGE_TYPE_LABELS,
   DAMAGE_TYPE_COLORS,
   BORROW_STATUS_LABELS,
-} from '../types';
+} from '../types/constants';
 import { useObjectiveStore } from '../store/objectiveStore';
 
 interface ObjectiveCardProps {

@@ -28,6 +28,9 @@ import {
   IconAlertTriangle,
   IconFileReport,
   IconStar,
+  IconHistory,
+  IconRefreshDot,
+  IconClipboardCheck,
 } from '@tabler/icons-react';
 import { theme } from './theme';
 import { useObjectiveStore } from './store/objectiveStore';
@@ -39,10 +42,14 @@ import { StatsPanel } from './components/StatsPanel';
 import { BatchActionBar } from './components/BatchActionBar';
 import { MaintenanceReminders } from './components/MaintenanceReminders';
 import { BorrowApprovalPanel } from './components/BorrowApprovalPanel';
+import { BorrowRecordsPanel } from './components/BorrowRecordsPanel';
+import { RenewalPanel } from './components/RenewalPanel';
+import { StatusChecklistPanel } from './components/StatusChecklistPanel';
 import { DepositFeePanel } from './components/DepositFeePanel';
 import { PenaltyPanel } from './components/PenaltyPanel';
 import { ReportExportPanel } from './components/ReportExportPanel';
 import { CreditProfilePanel } from './components/CreditProfilePanel';
+import { getPendingStatus } from './utils/statusUtils';
 import '@mantine/core/styles.css';
 import '@mantine/dates/styles.css';
 
@@ -64,12 +71,26 @@ function AppContent() {
   const clearSelectedIds = useObjectiveStore((state) => state.clearSelectedIds);
   const activeTab = useObjectiveStore((state) => state.activeTab);
   const setActiveTab = useObjectiveStore((state) => state.setActiveTab);
-  const getPendingApprovalCount = useObjectiveStore((state) => state.getPendingApprovalCount);
-  const getUnpaidPenaltyCount = useObjectiveStore((state) => state.getUnpaidPenaltyCount);
+  const getPendingApprovalCount = useObjectiveStore(
+    (state) => state.getPendingApprovalCount
+  );
+  const getUnpaidPenaltyCount = useObjectiveStore(
+    (state) => state.getUnpaidPenaltyCount
+  );
 
   const objectives = getFilteredObjectives();
   const pendingApprovalCount = getPendingApprovalCount();
   const unpaidPenaltyCount = getUnpaidPenaltyCount();
+
+  const renewalRequests = useObjectiveStore((state) => state.renewalRequests);
+  const borrowRecords = useObjectiveStore((state) => state.borrowRecords);
+
+  const pendingRenewalCount = renewalRequests.filter(
+    (r) => r.status === 'pending'
+  ).length;
+  const activeBorrows = borrowRecords.filter((r) =>
+    getPendingStatus(r.status)
+  ).length;
 
   useEffect(() => {
     if (notification) {
@@ -130,8 +151,14 @@ function AppContent() {
             </Box>
           </Group>
         );
+      case 'borrowRecords':
+        return <BorrowRecordsPanel />;
       case 'approval':
         return <BorrowApprovalPanel />;
+      case 'renewal':
+        return <RenewalPanel />;
+      case 'checklist':
+        return <StatusChecklistPanel />;
       case 'deposit':
         return <DepositFeePanel />;
       case 'penalty':
@@ -187,6 +214,17 @@ function AppContent() {
                 物镜管理
               </Tabs.Tab>
               <Tabs.Tab
+                value="borrowRecords"
+                leftSection={<IconHistory size={16} />}
+                rightSection={
+                  activeBorrows > 0 ? (
+                    <Badge size="xs" circle color="blue">{activeBorrows}</Badge>
+                  ) : null
+                }
+              >
+                借用记录
+              </Tabs.Tab>
+              <Tabs.Tab
                 value="approval"
                 leftSection={<IconClipboardList size={16} />}
                 rightSection={
@@ -196,6 +234,23 @@ function AppContent() {
                 }
               >
                 借用审批
+              </Tabs.Tab>
+              <Tabs.Tab
+                value="renewal"
+                leftSection={<IconRefreshDot size={16} />}
+                rightSection={
+                  pendingRenewalCount > 0 ? (
+                    <Badge size="xs" circle color="yellow">{pendingRenewalCount}</Badge>
+                  ) : null
+                }
+              >
+                续借审批
+              </Tabs.Tab>
+              <Tabs.Tab
+                value="checklist"
+                leftSection={<IconClipboardCheck size={16} />}
+              >
+                验收清单
               </Tabs.Tab>
               <Tabs.Tab value="deposit" leftSection={<IconCash size={16} />}>
                 押金费用

@@ -20,6 +20,7 @@ import type {
   StatusCheckItem,
   CreditProfile,
   BorrowConflict,
+  TabType,
 } from '../types';
 import { mockObjectives, mockRecords, mockImages, mockRepairs, mockLogs, mockReminders, mockBorrowRecords, mockBorrowApplications, mockDepositRecords, mockPenaltyRecords, mockRenewalRequests, mockCreditProfiles } from '../utils/mockData';
 import { validateBatchImportItem } from '../utils/validation';
@@ -43,7 +44,7 @@ interface ObjectiveStore {
   isObjectiveModalOpen: boolean;
   editingObjective: Objective | null;
   notification: { message: string; type: 'success' | 'error' | 'info' } | null;
-  activeTab: 'inventory' | 'borrow' | 'approval' | 'deposit' | 'penalty' | 'report' | 'credit';
+  activeTab: TabType;
   isApprovalModalOpen: boolean;
   isDepositModalOpen: boolean;
   isPenaltyModalOpen: boolean;
@@ -518,7 +519,7 @@ export const useObjectiveStore = create<ObjectiveStore>()(
           type: 'batch_import',
           description: `批量导入: 成功 ${result.success} 条，失败 ${result.failed} 条`,
           operator: '当前用户',
-          details: result,
+          details: result as unknown as Record<string, unknown>,
         });
         return result;
       },
@@ -827,7 +828,7 @@ export const useObjectiveStore = create<ObjectiveStore>()(
           borrowDate: app.requestedBorrowDate,
           expectedReturnDate: app.requestedReturnDate,
           status: 'borrowed',
-          priority: app.priority,
+          priority: app.priority as BorrowRecord['priority'],
           approvalStatus: 'approved',
           approvedBy,
           approvedAt: new Date().toISOString(),

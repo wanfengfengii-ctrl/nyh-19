@@ -68,7 +68,7 @@ import {
   IMAGE_TYPE_OPTIONS,
   BORROW_STATUS_LABELS,
   BORROW_STATUS_COLORS,
-} from '../types';
+} from '../types/constants';
 import { MaintenanceForm } from './MaintenanceForm';
 import { BorrowForm } from './BorrowForm';
 import { BorrowHistoryTimeline } from './BorrowHistoryTimeline';
@@ -113,7 +113,7 @@ export function DetailDrawer() {
   const images = getImagesByObjectiveId(selectedObjective.id);
   const repairs = getRepairsByObjectiveId(selectedObjective.id);
   const logs = getLogsByObjectiveId(selectedObjective.id);
-  const borrowRecords = getBorrowRecordsByObjectiveId(selectedObjective.id);
+  const objectiveBorrowRecords = getBorrowRecordsByObjectiveId(selectedObjective.id);
   const currentBorrow = getCurrentBorrowRecord(selectedObjective.id);
   const isScrapped = selectedObjective.status === 'scrapped';
 
@@ -639,7 +639,7 @@ export function DetailDrawer() {
             )}
 
             <Divider label="借用历史" labelPosition="center" />
-            <BorrowHistoryTimeline records={borrowRecords} />
+            <BorrowHistoryTimeline records={objectiveBorrowRecords} />
 
             {logs.length > 0 && (
               <>

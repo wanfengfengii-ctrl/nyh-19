@@ -16,7 +16,7 @@ import {
   IconFilter,
   IconX,
 } from '@tabler/icons-react';
-import { useObjectiveStore } from '../store/objectiveStore';
+import { useInventoryStore, useFilters } from '../store/inventoryStore';
 import type { ObjectiveStatus, DamageType } from '../types';
 import {
   STATUS_LABELS,
@@ -24,17 +24,17 @@ import {
   DAMAGE_TYPE_LABELS,
   DAMAGE_TYPE_COLORS,
   BORROW_FILTER_OPTIONS,
-} from '../types';
+} from '../types/constants';
 
 export function FilterBar() {
-  const filters = useObjectiveStore((state) => state.filters);
-  const setFilters = useObjectiveStore((state) => state.setFilters);
-  const resetFilters = useObjectiveStore((state) => state.resetFilters);
-  const getUniqueBrands = useObjectiveStore((state) => state.getUniqueBrands);
-  const getUniqueMagnifications = useObjectiveStore(
+  const filters = useFilters();
+  const setFilters = useInventoryStore((state) => state.setFilters);
+  const resetFilters = useInventoryStore((state) => state.resetFilters);
+  const getUniqueBrands = useInventoryStore((state) => state.getUniqueBrands);
+  const getUniqueMagnifications = useInventoryStore(
     (state) => state.getUniqueMagnifications
   );
-  const getFilteredObjectives = useObjectiveStore(
+  const getFilteredObjectives = useInventoryStore(
     (state) => state.getFilteredObjectives
   );
 
