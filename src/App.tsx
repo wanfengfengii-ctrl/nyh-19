@@ -14,8 +14,21 @@ import {
   Affix,
   Paper,
   Transition,
+  Tabs,
+  Badge,
 } from '@mantine/core';
-import { IconPlus, IconRefresh, IconCheck, IconX } from '@tabler/icons-react';
+import {
+  IconPlus,
+  IconRefresh,
+  IconCheck,
+  IconX,
+  IconMicroscope,
+  IconClipboardList,
+  IconCash,
+  IconAlertTriangle,
+  IconFileReport,
+  IconStar,
+} from '@tabler/icons-react';
 import { theme } from './theme';
 import { useObjectiveStore } from './store/objectiveStore';
 import { ObjectiveCard } from './components/ObjectiveCard';
@@ -25,6 +38,11 @@ import { DetailDrawer } from './components/DetailDrawer';
 import { StatsPanel } from './components/StatsPanel';
 import { BatchActionBar } from './components/BatchActionBar';
 import { MaintenanceReminders } from './components/MaintenanceReminders';
+import { BorrowApprovalPanel } from './components/BorrowApprovalPanel';
+import { DepositFeePanel } from './components/DepositFeePanel';
+import { PenaltyPanel } from './components/PenaltyPanel';
+import { ReportExportPanel } from './components/ReportExportPanel';
+import { CreditProfilePanel } from './components/CreditProfilePanel';
 import '@mantine/core/styles.css';
 import '@mantine/dates/styles.css';
 
@@ -44,8 +62,14 @@ function AppContent() {
     (state) => state.setNotification
   );
   const clearSelectedIds = useObjectiveStore((state) => state.clearSelectedIds);
+  const activeTab = useObjectiveStore((state) => state.activeTab);
+  const setActiveTab = useObjectiveStore((state) => state.setActiveTab);
+  const getPendingApprovalCount = useObjectiveStore((state) => state.getPendingApprovalCount);
+  const getUnpaidPenaltyCount = useObjectiveStore((state) => state.getUnpaidPenaltyCount);
 
   const objectives = getFilteredObjectives();
+  const pendingApprovalCount = getPendingApprovalCount();
+  const unpaidPenaltyCount = getUnpaidPenaltyCount();
 
   useEffect(() => {
     if (notification) {
@@ -70,42 +94,10 @@ function AppContent() {
     }
   };
 
-  return (
-    <AppShell header={{ height: 70 }} padding="md">
-      <AppShell.Header>
-        <Container h="100%">
-          <Group h="100%" justify="space-between">
-            <Group>
-              <Title order={2} c="darkBlue.7">
-                🔬 物镜档案管理系统
-              </Title>
-              <Text size="sm" c="dimmed">
-                显微镜收藏与维修工作室
-              </Text>
-            </Group>
-            <Group>
-              <Tooltip label="重置演示数据">
-                <ActionIcon
-                  variant="subtle"
-                  color="gray"
-                  onClick={handleResetData}
-                >
-                  <IconRefresh size={20} />
-                </ActionIcon>
-              </Tooltip>
-              <Button
-                leftSection={<IconPlus size={18} />}
-                onClick={handleAddObjective}
-              >
-                新增物镜
-              </Button>
-            </Group>
-          </Group>
-        </Container>
-      </AppShell.Header>
-
-      <AppShell.Main>
-        <Container size="xl">
+  const renderTabContent = () => {
+    switch (activeTab) {
+      case 'inventory':
+        return (
           <Group align="flex-start" gap="lg">
             <Box style={{ flex: 3, minWidth: 0 }}>
               <MaintenanceReminders />
@@ -137,6 +129,98 @@ function AppContent() {
               <StatsPanel />
             </Box>
           </Group>
+        );
+      case 'approval':
+        return <BorrowApprovalPanel />;
+      case 'deposit':
+        return <DepositFeePanel />;
+      case 'penalty':
+        return <PenaltyPanel />;
+      case 'report':
+        return <ReportExportPanel />;
+      case 'credit':
+        return <CreditProfilePanel />;
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <AppShell header={{ height: 70 }} padding="md">
+      <AppShell.Header>
+        <Container h="100%">
+          <Group h="100%" justify="space-between">
+            <Group>
+              <Title order={2} c="darkBlue.7">
+                🔬 物镜借用审批与追踪中心
+              </Title>
+              <Text size="sm" c="dimmed">
+                升级版 - 显微镜管理系统
+              </Text>
+            </Group>
+            <Group>
+              <Tooltip label="重置演示数据">
+                <ActionIcon
+                  variant="subtle"
+                  color="gray"
+                  onClick={handleResetData}
+                >
+                  <IconRefresh size={20} />
+                </ActionIcon>
+              </Tooltip>
+              <Button
+                leftSection={<IconPlus size={18} />}
+                onClick={handleAddObjective}
+              >
+                新增物镜
+              </Button>
+            </Group>
+          </Group>
+        </Container>
+      </AppShell.Header>
+
+      <AppShell.Main>
+        <Container size="xl">
+          <Tabs value={activeTab} onChange={(value) => setActiveTab(value as any)} mb="md">
+            <Tabs.List>
+              <Tabs.Tab value="inventory" leftSection={<IconMicroscope size={16} />}>
+                物镜管理
+              </Tabs.Tab>
+              <Tabs.Tab
+                value="approval"
+                leftSection={<IconClipboardList size={16} />}
+                rightSection={
+                  pendingApprovalCount > 0 ? (
+                    <Badge size="xs" circle>{pendingApprovalCount}</Badge>
+                  ) : null
+                }
+              >
+                借用审批
+              </Tabs.Tab>
+              <Tabs.Tab value="deposit" leftSection={<IconCash size={16} />}>
+                押金费用
+              </Tabs.Tab>
+              <Tabs.Tab
+                value="penalty"
+                leftSection={<IconAlertTriangle size={16} />}
+                rightSection={
+                  unpaidPenaltyCount > 0 ? (
+                    <Badge size="xs" circle color="red">{unpaidPenaltyCount}</Badge>
+                  ) : null
+                }
+              >
+                逾期处罚
+              </Tabs.Tab>
+              <Tabs.Tab value="report" leftSection={<IconFileReport size={16} />}>
+                报表导出
+              </Tabs.Tab>
+              <Tabs.Tab value="credit" leftSection={<IconStar size={16} />}>
+                信用画像
+              </Tabs.Tab>
+            </Tabs.List>
+          </Tabs>
+
+          {renderTabContent()}
         </Container>
       </AppShell.Main>
 

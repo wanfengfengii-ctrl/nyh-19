@@ -6,7 +6,15 @@ export type ObjectiveStatus =
   | 'in_repair'
   | 'scrapped';
 
-export type BorrowStatus = 'borrowed' | 'returned' | 'overdue';
+export type BorrowStatus = 'borrowed' | 'returned' | 'overdue' | 'pending_approval' | 'rejected' | 'renewal_pending';
+
+export type ApprovalStatus = 'pending' | 'approved' | 'rejected';
+
+export type BorrowPriority = 'low' | 'medium' | 'high' | 'urgent';
+
+export type PenaltyType = 'overdue_fee' | 'damage_compensation' | 'rule_violation';
+
+export type RenewalStatus = 'pending' | 'approved' | 'rejected';
 
 export type DamageType = 'mold' | 'scratch' | 'coating';
 
@@ -68,6 +76,120 @@ export interface BorrowRecord {
   status: BorrowStatus;
   notes?: string;
   createdAt: string;
+  priority?: BorrowPriority;
+  approvalStatus?: ApprovalStatus;
+  approvedBy?: string;
+  approvedAt?: string;
+  rejectionReason?: string;
+  depositAmount?: number;
+  depositReturned?: boolean;
+  depositReturnedAt?: string;
+  usageFee?: number;
+  renewalCount?: number;
+  hasPenalty?: boolean;
+  checkOutChecklist?: StatusCheckItem[];
+  checkInChecklist?: StatusCheckItem[];
+}
+
+export interface BorrowApplication {
+  id: string;
+  objectiveId: string;
+  borrowerName: string;
+  borrowerDepartment: string;
+  borrowerContact: string;
+  reason: string;
+  requestedBorrowDate: string;
+  requestedReturnDate: string;
+  priority: BorrowPriority;
+  status: ApprovalStatus;
+  approvalNotes?: string;
+  approvedBy?: string;
+  approvedAt?: string;
+  submittedAt: string;
+  reviewedAt?: string;
+}
+
+export interface DepositRecord {
+  id: string;
+  borrowRecordId: string;
+  objectiveId: string;
+  borrowerName: string;
+  amount: number;
+  paidAt: string;
+  returned: boolean;
+  returnedAt?: string;
+  notes?: string;
+}
+
+export interface PenaltyRecord {
+  id: string;
+  borrowRecordId: string;
+  objectiveId: string;
+  borrowerName: string;
+  type: PenaltyType;
+  amount: number;
+  reason: string;
+  paid: boolean;
+  paidAt?: string;
+  issuedAt: string;
+  issuedBy: string;
+}
+
+export interface RenewalRequest {
+  id: string;
+  borrowRecordId: string;
+  objectiveId: string;
+  borrowerName: string;
+  currentReturnDate: string;
+  requestedReturnDate: string;
+  reason: string;
+  status: RenewalStatus;
+  approvedBy?: string;
+  approvedAt?: string;
+  rejectionReason?: string;
+  submittedAt: string;
+}
+
+export interface StatusCheckItem {
+  id: string;
+  category: string;
+  item: string;
+  checked: boolean;
+  condition?: 'excellent' | 'good' | 'fair' | 'poor';
+  notes?: string;
+  checkedBy?: string;
+  checkedAt?: string;
+}
+
+export interface CreditProfile {
+  id: string;
+  borrowerName: string;
+  totalBorrows: number;
+  onTimeReturns: number;
+  overdueCount: number;
+  totalOverdueDays: number;
+  damageCount: number;
+  penaltyCount: number;
+  creditScore: number;
+  creditLevel: 'excellent' | 'good' | 'fair' | 'poor';
+  lastUpdated: string;
+}
+
+export interface BorrowConflict {
+  objectiveId: string;
+  objectiveSerialNumber: string;
+  existingBorrow: {
+    id: string;
+    borrowerName: string;
+    borrowDate: string;
+    expectedReturnDate: string;
+  };
+  requestedBorrow: {
+    borrowerName: string;
+    requestedBorrowDate: string;
+    requestedReturnDate: string;
+  };
+  overlapDays: number;
 }
 
 export interface BorrowFormData {
@@ -281,12 +403,90 @@ export const BORROW_STATUS_LABELS: Record<BorrowStatus, string> = {
   borrowed: '借出中',
   returned: '已归还',
   overdue: '已超期',
+  pending_approval: '待审批',
+  rejected: '已拒绝',
+  renewal_pending: '续借待审批',
 };
 
 export const BORROW_STATUS_COLORS: Record<BorrowStatus, string> = {
   borrowed: 'blue',
   returned: 'green',
   overdue: 'red',
+  pending_approval: 'yellow',
+  rejected: 'gray',
+  renewal_pending: 'orange',
+};
+
+export const APPROVAL_STATUS_LABELS: Record<ApprovalStatus, string> = {
+  pending: '待审批',
+  approved: '已批准',
+  rejected: '已拒绝',
+};
+
+export const APPROVAL_STATUS_COLORS: Record<ApprovalStatus, string> = {
+  pending: 'yellow',
+  approved: 'green',
+  rejected: 'red',
+};
+
+export const PRIORITY_LABELS: Record<BorrowPriority, string> = {
+  low: '低',
+  medium: '中',
+  high: '高',
+  urgent: '紧急',
+};
+
+export const PRIORITY_COLORS: Record<BorrowPriority, string> = {
+  low: 'gray',
+  medium: 'blue',
+  high: 'orange',
+  urgent: 'red',
+};
+
+export const PENALTY_TYPE_LABELS: Record<PenaltyType, string> = {
+  overdue_fee: '逾期费用',
+  damage_compensation: '损坏赔偿',
+  rule_violation: '违规处罚',
+};
+
+export const RENEWAL_STATUS_LABELS: Record<RenewalStatus, string> = {
+  pending: '待审批',
+  approved: '已批准',
+  rejected: '已拒绝',
+};
+
+export const RENEWAL_STATUS_COLORS: Record<RenewalStatus, string> = {
+  pending: 'yellow',
+  approved: 'green',
+  rejected: 'red',
+};
+
+export const CONDITION_LABELS: Record<string, string> = {
+  excellent: '优秀',
+  good: '良好',
+  fair: '一般',
+  poor: '较差',
+};
+
+export const CONDITION_COLORS: Record<string, string> = {
+  excellent: 'green',
+  good: 'blue',
+  fair: 'yellow',
+  poor: 'red',
+};
+
+export const CREDIT_LEVEL_LABELS: Record<string, string> = {
+  excellent: '优秀',
+  good: '良好',
+  fair: '一般',
+  poor: '较差',
+};
+
+export const CREDIT_LEVEL_COLORS: Record<string, string> = {
+  excellent: 'green',
+  good: 'blue',
+  fair: 'yellow',
+  poor: 'red',
 };
 
 export const BORROW_FILTER_OPTIONS = [
