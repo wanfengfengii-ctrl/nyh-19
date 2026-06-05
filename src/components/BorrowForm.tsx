@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import {
   Stack,
   TextInput,
@@ -31,7 +31,7 @@ export function BorrowForm({ objectiveId, isScrapped }: BorrowFormProps) {
   const currentBorrow = getCurrentBorrowRecord(objectiveId);
   const { canBorrow, reason: borrowReason } = canBorrowObjective(objectiveId);
 
-  const [mode, setMode] = useState<'borrow' | 'return'>(currentBorrow ? 'return' : 'borrow');
+  const mode = currentBorrow ? 'return' : 'borrow';
 
   const [borrowerName, setBorrowerName] = useState('');
   const [borrowerDepartment, setBorrowerDepartment] = useState('');
@@ -45,10 +45,6 @@ export function BorrowForm({ objectiveId, isScrapped }: BorrowFormProps) {
   const [returnNotes, setReturnNotes] = useState('');
 
   const [errors, setErrors] = useState<Record<string, string>>({});
-
-  useEffect(() => {
-    setMode(currentBorrow ? 'return' : 'borrow');
-  }, [currentBorrow]);
 
   const validateBorrowForm = () => {
     const newErrors: Record<string, string> = {};

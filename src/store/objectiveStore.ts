@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type {
   Objective,
+  ObjectiveStatus,
   MaintenanceRecord,
   FilterOptions,
   ImageArchive,
@@ -262,8 +263,18 @@ export const useObjectiveStore = create<ObjectiveStore>()(
       restoreObjective: (id, restoredBy) => {
         const obj = get().objectives.find((o) => o.id === id);
         if (obj?.scrappingRecord) {
+          let newStatus: ObjectiveStatus = 'normal';
+          const damageTypes = new Set(obj.damages.map((d) => d.type));
+          if (damageTypes.has('coating')) {
+            newStatus = 'coating_damaged';
+          } else if (damageTypes.has('scratch')) {
+            newStatus = 'scratched';
+          } else if (damageTypes.has('mold')) {
+            newStatus = 'moldy';
+          }
+
           get().updateObjective(id, {
-            status: 'normal',
+            status: newStatus,
             scrappingRecord: {
               ...obj.scrappingRecord,
               restoredAt: new Date().toISOString(),
