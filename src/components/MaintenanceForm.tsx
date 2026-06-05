@@ -12,6 +12,7 @@ import { DateInput } from '@mantine/dates';
 import { useForm } from '@mantine/form';
 import { IconAlertCircle } from '@tabler/icons-react';
 import { useObjectiveStore } from '../store/objectiveStore';
+import type { DamageDetail } from '../types';
 import {
   validateTestDate,
   validateClarityScore,
@@ -37,6 +38,7 @@ export function MaintenanceForm({
       clarityScore: 80,
       hasMold: false,
       hasScratch: false,
+      hasCoatingDamage: false,
       treatmentAdvice: '',
     },
 
@@ -50,11 +52,35 @@ export function MaintenanceForm({
     const adviceError = validateTreatmentAdvice(
       values.treatmentAdvice,
       values.hasMold,
-      values.hasScratch
+      values.hasScratch,
+      values.hasCoatingDamage
     );
     if (adviceError) {
       form.setFieldError('treatmentAdvice', adviceError);
       return;
+    }
+
+    const damages: DamageDetail[] = [];
+    if (values.hasMold) {
+      damages.push({
+        type: 'mold',
+        severity: 'mild',
+        description: values.treatmentAdvice,
+      });
+    }
+    if (values.hasScratch) {
+      damages.push({
+        type: 'scratch',
+        severity: 'mild',
+        description: values.treatmentAdvice,
+      });
+    }
+    if (values.hasCoatingDamage) {
+      damages.push({
+        type: 'coating',
+        severity: 'mild',
+        description: values.treatmentAdvice,
+      });
     }
 
     addRecord({
@@ -63,6 +89,10 @@ export function MaintenanceForm({
       clarityScore: values.clarityScore,
       hasMold: values.hasMold,
       hasScratch: values.hasScratch,
+      hasCoatingDamage: values.hasCoatingDamage,
+      damages,
+      beforeImages: [],
+      afterImages: [],
       treatmentAdvice: values.treatmentAdvice,
     });
     form.reset();
@@ -110,9 +140,15 @@ export function MaintenanceForm({
             label="有划痕"
             {...form.getInputProps('hasScratch', { type: 'checkbox' })}
           />
+          <Checkbox
+            label="有镀膜损伤"
+            {...form.getInputProps('hasCoatingDamage', { type: 'checkbox' })}
+          />
         </Group>
 
-        {(form.values.hasMold || form.values.hasScratch) && (
+        {(form.values.hasMold ||
+          form.values.hasScratch ||
+          form.values.hasCoatingDamage) && (
           <Textarea
             label="处理建议"
             placeholder="请描述问题并给出处理建议..."

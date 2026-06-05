@@ -1,7 +1,21 @@
-import { Card, Badge, Group, Text, Stack, ActionIcon, Tooltip } from '@mantine/core';
+import {
+  Card,
+  Badge,
+  Group,
+  Text,
+  Stack,
+  ActionIcon,
+  Tooltip,
+  Checkbox,
+} from '@mantine/core';
 import { IconEye, IconEdit, IconTrash } from '@tabler/icons-react';
 import type { Objective } from '../types';
-import { STATUS_LABELS, STATUS_COLORS } from '../types';
+import {
+  STATUS_LABELS,
+  STATUS_COLORS,
+  DAMAGE_TYPE_LABELS,
+  DAMAGE_TYPE_COLORS,
+} from '../types';
 import { useObjectiveStore } from '../store/objectiveStore';
 
 interface ObjectiveCardProps {
@@ -22,11 +36,19 @@ export function ObjectiveCard({ objective }: ObjectiveCardProps) {
   const getRecordsByObjectiveId = useObjectiveStore(
     (state) => state.getRecordsByObjectiveId
   );
+  const selectedIds = useObjectiveStore((state) => state.selectedIds);
+  const toggleSelectedId = useObjectiveStore(
+    (state) => state.toggleSelectedId
+  );
 
   const records = getRecordsByObjectiveId(objective.id);
   const latestScore = records.length > 0 ? records[0].clarityScore : null;
 
-  const handleViewDetails = () => {
+  const isSelected = selectedIds.includes(objective.id);
+  const isScrapped = objective.status === 'scrapped';
+
+  const handleViewDetails = (e: React.MouseEvent) => {
+    if ((e.target as HTMLElement).closest('button')) return;
     setSelectedObjective(objective);
   };
 
@@ -41,6 +63,10 @@ export function ObjectiveCard({ objective }: ObjectiveCardProps) {
     if (window.confirm(`确定要删除物镜 ${objective.serialNumber} 吗？`)) {
       deleteObjective(objective.id);
     }
+  };
+
+  const handleSelect = () => {
+    toggleSelectedId(objective.id);
   };
 
   const getScoreColor = (score: number) => {
@@ -59,10 +85,12 @@ export function ObjectiveCard({ objective }: ObjectiveCardProps) {
       onClick={handleViewDetails}
       style={{
         cursor: 'pointer',
-        backgroundColor:
-          objective.status === 'scrapped'
-            ? 'rgba(239, 68, 68, 0.05)'
-            : undefined,
+        backgroundColor: isScrapped
+          ? 'rgba(239, 68, 68, 0.05)'
+          : isSelected
+          ? 'rgba(59, 130, 246, 0.08)'
+          : undefined,
+        borderColor: isSelected ? '#3b82f6' : undefined,
       }}
       styles={(theme) => ({
         root: {
@@ -75,9 +103,17 @@ export function ObjectiveCard({ objective }: ObjectiveCardProps) {
     >
       <Card.Section withBorder inheritPadding py="xs">
         <Group justify="space-between">
-          <Text fw={600} size="sm" c="dimmed">
-            {objective.serialNumber}
-          </Text>
+          <Group gap="xs">
+            <Checkbox
+              checked={isSelected}
+              onChange={handleSelect}
+              onClick={(e) => e.stopPropagation()}
+              size="sm"
+            />
+            <Text fw={600} size="sm" c="dimmed">
+              {objective.serialNumber}
+            </Text>
+          </Group>
           <Badge color={STATUS_COLORS[objective.status]} variant="light">
             {STATUS_LABELS[objective.status]}
           </Badge>
@@ -98,6 +134,24 @@ export function ObjectiveCard({ objective }: ObjectiveCardProps) {
             </Badge>
           </Group>
         </Group>
+
+        {objective.damages.length > 0 && (
+          <Group gap="xs">
+            {objective.damages.slice(0, 3).map((d, i) => (
+              <Badge
+                key={i}
+                color={DAMAGE_TYPE_COLORS[d.type]}
+                size="xs"
+                variant="filled"
+              >
+                {DAMAGE_TYPE_LABELS[d.type]}
+              </Badge>
+            ))}
+            {objective.damages.length > 3 && (
+              <Badge size="xs">+{objective.damages.length - 3}</Badge>
+            )}
+          </Group>
+        )}
 
         <Group gap="xs">
           <Text size="sm" c="dimmed">
@@ -133,11 +187,15 @@ export function ObjectiveCard({ objective }: ObjectiveCardProps) {
             <IconEye size={18} />
           </ActionIcon>
         </Tooltip>
-        <Tooltip label="编辑">
-          <ActionIcon variant="subtle" color="gray" onClick={handleEdit}>
-            <IconEdit size={18} />
-          </ActionIcon>
-        </Tooltip>
+        {!isScrapped && (
+          <>
+            <Tooltip label="编辑">
+              <ActionIcon variant="subtle" color="gray" onClick={handleEdit}>
+                <IconEdit size={18} />
+              </ActionIcon>
+            </Tooltip>
+          </>
+        )}
         <Tooltip label="删除">
           <ActionIcon variant="subtle" color="red" onClick={handleDelete}>
             <IconTrash size={18} />

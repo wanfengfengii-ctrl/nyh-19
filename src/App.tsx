@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import {
   MantineProvider,
   AppShell,
@@ -10,8 +11,11 @@ import {
   ActionIcon,
   Tooltip,
   Box,
+  Affix,
+  Paper,
+  Transition,
 } from '@mantine/core';
-import { IconPlus, IconRefresh } from '@tabler/icons-react';
+import { IconPlus, IconRefresh, IconCheck, IconX } from '@tabler/icons-react';
 import { theme } from './theme';
 import { useObjectiveStore } from './store/objectiveStore';
 import { ObjectiveCard } from './components/ObjectiveCard';
@@ -19,6 +23,8 @@ import { FilterBar } from './components/FilterBar';
 import { ObjectiveForm } from './components/ObjectiveForm';
 import { DetailDrawer } from './components/DetailDrawer';
 import { StatsPanel } from './components/StatsPanel';
+import { BatchActionBar } from './components/BatchActionBar';
+import { MaintenanceReminders } from './components/MaintenanceReminders';
 import '@mantine/core/styles.css';
 import '@mantine/dates/styles.css';
 
@@ -33,8 +39,20 @@ function AppContent() {
     (state) => state.setEditingObjective
   );
   const resetToMockData = useObjectiveStore((state) => state.resetToMockData);
+  const notification = useObjectiveStore((state) => state.notification);
+  const setNotification = useObjectiveStore(
+    (state) => state.setNotification
+  );
+  const clearSelectedIds = useObjectiveStore((state) => state.clearSelectedIds);
 
   const objectives = getFilteredObjectives();
+
+  useEffect(() => {
+    if (notification) {
+      const timer = setTimeout(() => setNotification(null), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [notification, setNotification]);
 
   const handleAddObjective = () => {
     setEditingObjective(null);
@@ -44,6 +62,11 @@ function AppContent() {
   const handleResetData = () => {
     if (window.confirm('确定要重置所有数据吗？这将恢复为初始演示数据。')) {
       resetToMockData();
+      clearSelectedIds();
+      setNotification({
+        message: '数据已重置',
+        type: 'success',
+      });
     }
   };
 
@@ -85,6 +108,10 @@ function AppContent() {
         <Container size="xl">
           <Group align="flex-start" gap="lg">
             <Box style={{ flex: 3, minWidth: 0 }}>
+              <MaintenanceReminders />
+
+              <BatchActionBar />
+
               <Group mb="md">
                 <FilterBar />
               </Group>
@@ -115,6 +142,45 @@ function AppContent() {
 
       <ObjectiveForm />
       <DetailDrawer />
+
+      <Affix position={{ bottom: 20, right: 20 }}>
+        <Transition mounted={!!notification} transition="slide-up">
+          {(transitionStyles) => (
+            <Paper
+              shadow="md"
+              p="md"
+              style={{
+                ...transitionStyles,
+                backgroundColor:
+                  notification?.type === 'success'
+                    ? '#dcfce7'
+                    : notification?.type === 'error'
+                    ? '#fee2e2'
+                    : '#dbeafe',
+                borderLeft: `4px solid ${
+                  notification?.type === 'success'
+                    ? '#22c55e'
+                    : notification?.type === 'error'
+                    ? '#ef4444'
+                    : '#3b82f6'
+                }`,
+                minWidth: 280,
+              }}
+            >
+              <Group gap="sm">
+                {notification?.type === 'error' ? (
+                  <IconX size={20} color="#ef4444" />
+                ) : (
+                  <IconCheck size={20} color="#22c55e" />
+                )}
+                <Text size="sm" fw={500}>
+                  {notification?.message}
+                </Text>
+              </Group>
+            </Paper>
+          )}
+        </Transition>
+      </Affix>
     </AppShell>
   );
 }

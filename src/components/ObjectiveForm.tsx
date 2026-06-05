@@ -1,5 +1,13 @@
 import { useEffect } from 'react';
-import { Modal, TextInput, Select, NumberInput, Button, Stack, Group } from '@mantine/core';
+import {
+  Modal,
+  TextInput,
+  Select,
+  NumberInput,
+  Button,
+  Stack,
+  Group,
+} from '@mantine/core';
 import { useForm } from '@mantine/form';
 import { useObjectiveStore } from '../store/objectiveStore';
 import type { ObjectiveFormData, ObjectiveStatus } from '../types';
@@ -13,6 +21,10 @@ import {
   validateSerialNumber,
   validateMagnification,
   validateNumericalAperture,
+  validateBrand,
+  validateInterfaceSpec,
+  validateCoatingStatus,
+  validateStorageLocation,
 } from '../utils/validation';
 
 export function ObjectiveForm() {
@@ -28,6 +40,9 @@ export function ObjectiveForm() {
   const updateObjective = useObjectiveStore((state) => state.updateObjective);
   const isSerialNumberUnique = useObjectiveStore(
     (state) => state.isSerialNumberUnique
+  );
+  const setNotification = useObjectiveStore(
+    (state) => state.setNotification
   );
 
   const isEditing = !!editingObjective;
@@ -50,12 +65,12 @@ export function ObjectiveForm() {
           value,
           isSerialNumberUnique(value, editingObjective?.id)
         ),
-      brand: (value) => (!value ? '请选择品牌' : null),
+      brand: (value) => validateBrand(value),
       magnification: (value) => validateMagnification(value),
       numericalAperture: (value) => validateNumericalAperture(value),
-      interfaceSpec: (value) => (!value ? '请选择接口规格' : null),
-      coatingStatus: (value) => (!value ? '请选择镀膜状态' : null),
-      storageLocation: (value) => (!value ? '请输入保存位置' : null),
+      interfaceSpec: (value) => validateInterfaceSpec(value),
+      coatingStatus: (value) => validateCoatingStatus(value),
+      storageLocation: (value) => validateStorageLocation(value),
     },
   });
 
@@ -64,8 +79,8 @@ export function ObjectiveForm() {
       form.setValues({
         serialNumber: editingObjective.serialNumber,
         brand: editingObjective.brand,
-        magnification: editingObjective.magnification,
-        numericalAperture: editingObjective.numericalAperture,
+        magnification: Number(editingObjective.magnification),
+        numericalAperture: Number(editingObjective.numericalAperture),
         interfaceSpec: editingObjective.interfaceSpec,
         coatingStatus: editingObjective.coatingStatus,
         storageLocation: editingObjective.storageLocation,
@@ -90,8 +105,16 @@ export function ObjectiveForm() {
     };
     if (isEditing && editingObjective) {
       updateObjective(editingObjective.id, dataToSave);
+      setNotification({
+        message: '物镜信息已更新',
+        type: 'success',
+      });
     } else {
       addObjective(dataToSave);
+      setNotification({
+        message: '物镜添加成功',
+        type: 'success',
+      });
     }
     handleClose();
   };
@@ -126,14 +149,18 @@ export function ObjectiveForm() {
                 value: m.toString(),
                 label: `${m}×`,
               }))}
-              {...form.getInputProps('magnification')}
+              value={form.values.magnification.toString()}
+              onChange={(value) =>
+                form.setFieldValue('magnification', Number(value) || 0)
+              }
+              error={form.errors.magnification}
             />
 
             <NumberInput
               label="数值孔径 (NA)"
               placeholder="0.25"
               min={0}
-              max={1.5}
+              max={1.65}
               step={0.05}
               decimalScale={2}
               {...form.getInputProps('numericalAperture')}
@@ -166,6 +193,8 @@ export function ObjectiveForm() {
               { value: 'normal', label: '完好' },
               { value: 'scratched', label: '有划痕' },
               { value: 'moldy', label: '有霉斑' },
+              { value: 'coating_damaged', label: '镀膜损伤' },
+              { value: 'in_repair', label: '维修中' },
               { value: 'scrapped', label: '已报废' },
             ]}
             {...form.getInputProps('status')}

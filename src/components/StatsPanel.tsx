@@ -63,6 +63,8 @@ export function StatsPanel() {
     normal: objectives.filter((o) => o.status === 'normal').length,
     scratched: objectives.filter((o) => o.status === 'scratched').length,
     moldy: objectives.filter((o) => o.status === 'moldy').length,
+    coating_damaged: objectives.filter((o) => o.status === 'coating_damaged').length,
+    in_repair: objectives.filter((o) => o.status === 'in_repair').length,
     scrapped: objectives.filter((o) => o.status === 'scrapped').length,
   };
 
@@ -89,7 +91,7 @@ export function StatsPanel() {
         </Card>
       </SimpleGrid>
 
-      <SimpleGrid cols={4}>
+      <SimpleGrid cols={3}>
         <Card withBorder p="sm" radius="sm">
           <Text size="xs" c="dimmed">
             完好
@@ -112,6 +114,22 @@ export function StatsPanel() {
           </Text>
           <Text fw={700} c="yellow">
             {statusStats.moldy}
+          </Text>
+        </Card>
+        <Card withBorder p="sm" radius="sm">
+          <Text size="xs" c="dimmed">
+            镀膜损伤
+          </Text>
+          <Text fw={700} c="pink">
+            {statusStats.coating_damaged}
+          </Text>
+        </Card>
+        <Card withBorder p="sm" radius="sm">
+          <Text size="xs" c="dimmed">
+            维修中
+          </Text>
+          <Text fw={700} c="blue">
+            {statusStats.in_repair}
           </Text>
         </Card>
         <Card withBorder p="sm" radius="sm">
