@@ -8,13 +8,14 @@ import {
   Tooltip,
   Checkbox,
 } from '@mantine/core';
-import { IconEye, IconEdit, IconTrash } from '@tabler/icons-react';
+import { IconEye, IconEdit, IconTrash, IconUser } from '@tabler/icons-react';
 import type { Objective } from '../types';
 import {
   STATUS_LABELS,
   STATUS_COLORS,
   DAMAGE_TYPE_LABELS,
   DAMAGE_TYPE_COLORS,
+  BORROW_STATUS_LABELS,
 } from '../types';
 import { useObjectiveStore } from '../store/objectiveStore';
 
@@ -36,6 +37,9 @@ export function ObjectiveCard({ objective }: ObjectiveCardProps) {
   const getRecordsByObjectiveId = useObjectiveStore(
     (state) => state.getRecordsByObjectiveId
   );
+  const getCurrentBorrowRecord = useObjectiveStore(
+    (state) => state.getCurrentBorrowRecord
+  );
   const selectedIds = useObjectiveStore((state) => state.selectedIds);
   const toggleSelectedId = useObjectiveStore(
     (state) => state.toggleSelectedId
@@ -43,6 +47,7 @@ export function ObjectiveCard({ objective }: ObjectiveCardProps) {
 
   const records = getRecordsByObjectiveId(objective.id);
   const latestScore = records.length > 0 ? records[0].clarityScore : null;
+  const currentBorrow = getCurrentBorrowRecord(objective.id);
 
   const isSelected = selectedIds.includes(objective.id);
   const isScrapped = objective.status === 'scrapped';
@@ -101,6 +106,28 @@ export function ObjectiveCard({ objective }: ObjectiveCardProps) {
         },
       })}
     >
+      {currentBorrow && (
+        <Card.Section
+          bg={currentBorrow.status === 'overdue' ? 'red.0' : 'blue.0'}
+          py={6}
+          px="lg"
+          style={{ borderBottom: '1px solid #eee' }}
+        >
+          <Group justify="space-between">
+            <Group gap="xs">
+              <IconUser size={14} color={currentBorrow.status === 'overdue' ? '#ef4444' : '#3b82f6'} />
+              <Text size="xs" fw={500} c={currentBorrow.status === 'overdue' ? 'red' : 'blue'}>
+                {BORROW_STATUS_LABELS[currentBorrow.status]}: {currentBorrow.borrowerName}
+              </Text>
+            </Group>
+            {currentBorrow.status === 'overdue' && (
+              <Badge color="red" size="xs">
+                已超期
+              </Badge>
+            )}
+          </Group>
+        </Card.Section>
+      )}
       <Card.Section withBorder inheritPadding py="xs">
         <Group justify="space-between">
           <Group gap="xs">

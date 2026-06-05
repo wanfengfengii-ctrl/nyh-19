@@ -26,6 +26,13 @@ const COLORS = [
 export function StatsPanel() {
   const objectives = useObjectiveStore((state) => state.objectives);
   const records = useObjectiveStore((state) => state.records);
+  const getAvailableCount = useObjectiveStore((state) => state.getAvailableCount);
+  const getBorrowedCount = useObjectiveStore((state) => state.getBorrowedCount);
+  const getOverdueCount = useObjectiveStore((state) => state.getOverdueCount);
+
+  const availableCount = getAvailableCount();
+  const borrowedCount = getBorrowedCount();
+  const overdueCount = getOverdueCount();
 
   const magnificationData = objectives.reduce((acc, obj) => {
     const key = `${obj.magnification}×`;
@@ -138,6 +145,34 @@ export function StatsPanel() {
           </Text>
           <Text fw={700} c="red">
             {statusStats.scrapped}
+          </Text>
+        </Card>
+      </SimpleGrid>
+
+      <Title order={5}>借用统计</Title>
+      <SimpleGrid cols={3}>
+        <Card withBorder p="sm" radius="sm">
+          <Text size="xs" c="dimmed">
+            可借用
+          </Text>
+          <Text fw={700} c="green">
+            {availableCount}
+          </Text>
+        </Card>
+        <Card withBorder p="sm" radius="sm">
+          <Text size="xs" c="dimmed">
+            已借出
+          </Text>
+          <Text fw={700} c="blue">
+            {borrowedCount}
+          </Text>
+        </Card>
+        <Card withBorder p="sm" radius="sm">
+          <Text size="xs" c="dimmed">
+            已超期
+          </Text>
+          <Text fw={700} c="red">
+            {overdueCount}
           </Text>
         </Card>
       </SimpleGrid>

@@ -11,8 +11,9 @@ import type {
   ScrappingRecord,
   ObjectiveFormData,
   BatchImportResult,
+  BorrowRecord,
 } from '../types';
-import { mockObjectives, mockRecords, mockImages, mockRepairs, mockLogs, mockReminders } from '../utils/mockData';
+import { mockObjectives, mockRecords, mockImages, mockRepairs, mockLogs, mockReminders, mockBorrowRecords } from '../utils/mockData';
 import { validateBatchImportItem } from '../utils/validation';
 
 interface ObjectiveStore {
@@ -22,6 +23,7 @@ interface ObjectiveStore {
   repairs: RepairRecord[];
   operationLogs: OperationLog[];
   reminders: MaintenanceReminder[];
+  borrowRecords: BorrowRecord[];
   selectedObjective: Objective | null;
   selectedIds: string[];
   filters: FilterOptions;
@@ -66,6 +68,18 @@ interface ObjectiveStore {
   getUniqueBrands: () => string[];
   getUniqueMagnifications: () => number[];
   getScoreTrend: (id: string) => { date: string; score: number }[];
+
+  addBorrowRecord: (record: Omit<BorrowRecord, 'id' | 'status' | 'createdAt'>) => void;
+  returnObjective: (borrowId: string, actualReturnDate: string, notes?: string) => void;
+  getBorrowRecordsByObjectiveId: (id: string) => BorrowRecord[];
+  getCurrentBorrowRecord: (id: string) => BorrowRecord | undefined;
+  isObjectiveAvailable: (id: string) => boolean;
+  canBorrowObjective: (id: string) => { canBorrow: boolean; reason?: string };
+  updateOverdueStatus: () => void;
+  getOverdueRecords: () => BorrowRecord[];
+  getBorrowedCount: () => number;
+  getOverdueCount: () => number;
+  getAvailableCount: () => number;
 }
 
 export const useObjectiveStore = create<ObjectiveStore>()(
@@ -77,6 +91,7 @@ export const useObjectiveStore = create<ObjectiveStore>()(
       repairs: mockRepairs,
       operationLogs: mockLogs,
       reminders: mockReminders,
+      borrowRecords: mockBorrowRecords,
       selectedObjective: null,
       selectedIds: [],
       filters: {},
@@ -313,6 +328,7 @@ export const useObjectiveStore = create<ObjectiveStore>()(
           repairs: mockRepairs,
           operationLogs: mockLogs,
           reminders: mockReminders,
+          borrowRecords: mockBorrowRecords,
           selectedIds: [],
         }),
 
@@ -400,7 +416,7 @@ export const useObjectiveStore = create<ObjectiveStore>()(
       },
 
       getFilteredObjectives: () => {
-        const { objectives, filters } = get();
+        const { objectives, filters, getCurrentBorrowRecord } = get();
         return objectives.filter((obj) => {
           if (filters.status && obj.status !== filters.status) return false;
           if (filters.brand && obj.brand !== filters.brand) return false;
@@ -425,6 +441,18 @@ export const useObjectiveStore = create<ObjectiveStore>()(
               obj.damages.some((d) => d.type === type)
             );
             if (!hasDamage) return false;
+          }
+          if (filters.borrowStatus) {
+            const currentBorrow = getCurrentBorrowRecord(obj.id);
+            if (filters.borrowStatus === 'available' && currentBorrow) {
+              return false;
+            }
+            if (filters.borrowStatus === 'borrowed' && (!currentBorrow || currentBorrow.status === 'overdue')) {
+              return false;
+            }
+            if (filters.borrowStatus === 'overdue' && (!currentBorrow || currentBorrow.status !== 'overdue')) {
+              return false;
+            }
           }
           if (filters.search) {
             const searchLower = filters.search.toLowerCase();
@@ -493,6 +521,147 @@ export const useObjectiveStore = create<ObjectiveStore>()(
             date: r.testDate,
             score: r.clarityScore,
           }));
+      },
+
+      addBorrowRecord: (record) => {
+        const { canBorrow, reason } = get().canBorrowObjective(record.objectiveId);
+        if (!canBorrow) {
+          get().setNotification({
+            message: reason || '无法借出',
+            type: 'error',
+          });
+          return;
+        }
+
+        const newRecord: BorrowRecord = {
+          ...record,
+          id: `borrow-${Date.now()}`,
+          status: 'borrowed',
+          createdAt: new Date().toISOString(),
+        };
+        set((state) => ({
+          borrowRecords: [...state.borrowRecords, newRecord],
+        }));
+        get().addOperationLog({
+          type: 'update',
+          objectiveId: record.objectiveId,
+          description: `借出物镜: ${record.borrowerName} - ${record.reason}`,
+          operator: '当前用户',
+        });
+        get().setNotification({
+          message: '借出登记成功',
+          type: 'success',
+        });
+      },
+
+      returnObjective: (borrowId, actualReturnDate, notes) => {
+        const record = get().borrowRecords.find((r) => r.id === borrowId);
+        if (!record) return;
+
+        if (new Date(actualReturnDate) < new Date(record.borrowDate)) {
+          get().setNotification({
+            message: '归还日期不能早于借出日期',
+            type: 'error',
+          });
+          return;
+        }
+
+        set((state) => ({
+          borrowRecords: state.borrowRecords.map((r) =>
+            r.id === borrowId
+              ? {
+                  ...r,
+                  status: 'returned',
+                  actualReturnDate,
+                  notes: notes || r.notes,
+                }
+              : r
+          ),
+        }));
+        get().addOperationLog({
+          type: 'update',
+          objectiveId: record.objectiveId,
+          description: `归还物镜`,
+          operator: '当前用户',
+        });
+        get().setNotification({
+          message: '归还登记成功',
+          type: 'success',
+        });
+      },
+
+      getBorrowRecordsByObjectiveId: (id) => {
+        return get()
+          .borrowRecords.filter((r) => r.objectiveId === id)
+          .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      },
+
+      getCurrentBorrowRecord: (id) => {
+        return get().borrowRecords.find(
+          (r) => r.objectiveId === id && (r.status === 'borrowed' || r.status === 'overdue')
+        );
+      },
+
+      isObjectiveAvailable: (id) => {
+        const current = get().getCurrentBorrowRecord(id);
+        return !current;
+      },
+
+      canBorrowObjective: (id) => {
+        const obj = get().objectives.find((o) => o.id === id);
+        if (!obj) {
+          return { canBorrow: false, reason: '物镜不存在' };
+        }
+        if (obj.status === 'scrapped') {
+          return { canBorrow: false, reason: '已报废物镜不能借出' };
+        }
+        if (obj.status === 'in_repair') {
+          return { canBorrow: false, reason: '维修中物镜不能借出' };
+        }
+        if (!get().isObjectiveAvailable(id)) {
+          return { canBorrow: false, reason: '物镜未归还，不能重复借出' };
+        }
+        return { canBorrow: true };
+      },
+
+      updateOverdueStatus: () => {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        set((state) => ({
+          borrowRecords: state.borrowRecords.map((r) => {
+            if (r.status === 'borrowed' && new Date(r.expectedReturnDate) < today) {
+              return { ...r, status: 'overdue' };
+            }
+            return r;
+          }),
+        }));
+      },
+
+      getOverdueRecords: () => {
+        get().updateOverdueStatus();
+        return get().borrowRecords.filter((r) => r.status === 'overdue');
+      },
+
+      getBorrowedCount: () => {
+        return get().borrowRecords.filter(
+          (r) => r.status === 'borrowed' || r.status === 'overdue'
+        ).length;
+      },
+
+      getOverdueCount: () => {
+        return get().getOverdueRecords().length;
+      },
+
+      getAvailableCount: () => {
+        const borrowedIds = new Set(
+          get()
+            .borrowRecords.filter((r) => r.status === 'borrowed' || r.status === 'overdue')
+            .map((r) => r.objectiveId)
+        );
+        return get().objectives.filter(
+          (o) =>
+            !borrowedIds.has(o.id) && o.status !== 'scrapped' && o.status !== 'in_repair'
+        ).length;
       },
     }),
     {

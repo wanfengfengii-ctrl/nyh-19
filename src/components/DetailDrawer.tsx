@@ -20,6 +20,7 @@ import {
   TextInput,
   ScrollArea,
   Chip,
+  Alert,
 } from '@mantine/core';
 import {
   IconMicroscope,
@@ -36,6 +37,8 @@ import {
   IconCalendar,
   IconUser,
   IconCoin,
+  IconBuilding,
+  IconAlertCircle,
 } from '@tabler/icons-react';
 import {
   LineChart,
@@ -63,8 +66,12 @@ import {
   REPAIR_STATUS_LABELS,
   REPAIR_STATUS_COLORS,
   IMAGE_TYPE_OPTIONS,
+  BORROW_STATUS_LABELS,
+  BORROW_STATUS_COLORS,
 } from '../types';
 import { MaintenanceForm } from './MaintenanceForm';
+import { BorrowForm } from './BorrowForm';
+import { BorrowHistoryTimeline } from './BorrowHistoryTimeline';
 
 export function DetailDrawer() {
   const selectedObjective = useObjectiveStore(
@@ -85,6 +92,12 @@ export function DetailDrawer() {
   const getLogsByObjectiveId = useObjectiveStore(
     (state) => state.getLogsByObjectiveId
   );
+  const getBorrowRecordsByObjectiveId = useObjectiveStore(
+    (state) => state.getBorrowRecordsByObjectiveId
+  );
+  const getCurrentBorrowRecord = useObjectiveStore(
+    (state) => state.getCurrentBorrowRecord
+  );
   const scrapObjective = useObjectiveStore((state) => state.scrapObjective);
   const restoreObjective = useObjectiveStore((state) => state.restoreObjective);
   const deleteObjective = useObjectiveStore((state) => state.deleteObjective);
@@ -100,6 +113,8 @@ export function DetailDrawer() {
   const images = getImagesByObjectiveId(selectedObjective.id);
   const repairs = getRepairsByObjectiveId(selectedObjective.id);
   const logs = getLogsByObjectiveId(selectedObjective.id);
+  const borrowRecords = getBorrowRecordsByObjectiveId(selectedObjective.id);
+  const currentBorrow = getCurrentBorrowRecord(selectedObjective.id);
   const isScrapped = selectedObjective.status === 'scrapped';
 
   const getScoreColor = (score: number) => {
@@ -435,11 +450,55 @@ export function DetailDrawer() {
               )}
             </Stack>
 
+            {currentBorrow && (
+              <Alert
+                icon={<IconAlertCircle size={16} />}
+                color={currentBorrow.status === 'overdue' ? 'red' : 'blue'}
+                title="当前借用信息"
+              >
+                <Stack gap="xs" mt="xs">
+                  <Group justify="space-between">
+                    <Group gap="xs">
+                      <IconUser size={14} />
+                      <Text size="sm">
+                        借用人: <strong>{currentBorrow.borrowerName}</strong>
+                      </Text>
+                    </Group>
+                    <Badge color={BORROW_STATUS_COLORS[currentBorrow.status]}>
+                      {BORROW_STATUS_LABELS[currentBorrow.status]}
+                    </Badge>
+                  </Group>
+                  <Group gap="xs">
+                    <IconBuilding size={14} />
+                    <Text size="sm">部门: {currentBorrow.borrowerDepartment}</Text>
+                  </Group>
+                  <Group gap="xs">
+                    <IconCalendar size={14} />
+                    <Text size="sm">
+                      借出: {currentBorrow.borrowDate} ~ 预计归还: {currentBorrow.expectedReturnDate}
+                    </Text>
+                  </Group>
+                  <Text size="sm" c="dimmed">
+                    原因: {currentBorrow.reason}
+                  </Text>
+                </Stack>
+              </Alert>
+            )}
+
             <Accordion variant="separated">
               <Accordion.Item value="add-record">
                 <Accordion.Control>添加保养记录</Accordion.Control>
                 <Accordion.Panel>
                   <MaintenanceForm
+                    objectiveId={selectedObjective.id}
+                    isScrapped={isScrapped}
+                  />
+                </Accordion.Panel>
+              </Accordion.Item>
+              <Accordion.Item value="borrow-manage">
+                <Accordion.Control>借用管理</Accordion.Control>
+                <Accordion.Panel>
+                  <BorrowForm
                     objectiveId={selectedObjective.id}
                     isScrapped={isScrapped}
                   />
@@ -578,6 +637,9 @@ export function DetailDrawer() {
                 暂无保养记录
               </Text>
             )}
+
+            <Divider label="借用历史" labelPosition="center" />
+            <BorrowHistoryTimeline records={borrowRecords} />
 
             {logs.length > 0 && (
               <>

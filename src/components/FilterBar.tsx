@@ -23,6 +23,7 @@ import {
   COATING_OPTIONS,
   DAMAGE_TYPE_LABELS,
   DAMAGE_TYPE_COLORS,
+  BORROW_FILTER_OPTIONS,
 } from '../types';
 
 export function FilterBar() {
@@ -73,6 +74,17 @@ export function FilterBar() {
             setFilters({ status: (value as ObjectiveStatus) || undefined })
           }
           data={statusOptions}
+          size="sm"
+        />
+
+        <Select
+          placeholder="借用状态"
+          clearable
+          value={filters.borrowStatus || null}
+          onChange={(value) =>
+            setFilters({ borrowStatus: (value as 'available' | 'borrowed' | 'overdue') || undefined })
+          }
+          data={BORROW_FILTER_OPTIONS}
           size="sm"
         />
 

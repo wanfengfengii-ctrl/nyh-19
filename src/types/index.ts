@@ -6,6 +6,8 @@ export type ObjectiveStatus =
   | 'in_repair'
   | 'scrapped';
 
+export type BorrowStatus = 'borrowed' | 'returned' | 'overdue';
+
 export type DamageType = 'mold' | 'scratch' | 'coating';
 
 export type RepairStatus = 'pending' | 'in_progress' | 'completed' | 'cancelled';
@@ -51,6 +53,36 @@ export interface RepairRecord {
   cost?: number;
   notes: string;
   createdAt: string;
+}
+
+export interface BorrowRecord {
+  id: string;
+  objectiveId: string;
+  borrowerName: string;
+  borrowerDepartment: string;
+  borrowerContact: string;
+  reason: string;
+  borrowDate: string;
+  expectedReturnDate: string;
+  actualReturnDate?: string;
+  status: BorrowStatus;
+  notes?: string;
+  createdAt: string;
+}
+
+export interface BorrowFormData {
+  borrowerName: string;
+  borrowerDepartment: string;
+  borrowerContact: string;
+  reason: string;
+  borrowDate: Date | null;
+  expectedReturnDate: Date | null;
+  notes?: string;
+}
+
+export interface ReturnFormData {
+  actualReturnDate: Date | null;
+  notes?: string;
 }
 
 export interface ScrappingRecord {
@@ -125,6 +157,7 @@ export interface FilterOptions {
   hasScratch?: boolean;
   hasCoatingDamage?: boolean;
   damageTypes?: DamageType[];
+  borrowStatus?: 'available' | 'borrowed' | 'overdue';
 }
 
 export interface ObjectiveFormData {
@@ -242,4 +275,32 @@ export const IMAGE_TYPE_OPTIONS: {
   { value: 'after_cleaning', label: '清洁后' },
   { value: 'damage', label: '损伤记录' },
   { value: 'general', label: '档案照片' },
+];
+
+export const BORROW_STATUS_LABELS: Record<BorrowStatus, string> = {
+  borrowed: '借出中',
+  returned: '已归还',
+  overdue: '已超期',
+};
+
+export const BORROW_STATUS_COLORS: Record<BorrowStatus, string> = {
+  borrowed: 'blue',
+  returned: 'green',
+  overdue: 'red',
+};
+
+export const BORROW_FILTER_OPTIONS = [
+  { value: 'available', label: '可借用' },
+  { value: 'borrowed', label: '已借出' },
+  { value: 'overdue', label: '已超期' },
+];
+
+export const DEPARTMENT_OPTIONS = [
+  '生物学实验室',
+  '医学实验室',
+  '材料科学实验室',
+  '化学实验室',
+  '物理学实验室',
+  '教学实验室',
+  '其他',
 ];
